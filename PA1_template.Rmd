@@ -1,0 +1,90 @@
+#REPRODUCIBLE RESEARCH
+## Peer asessment 1
+
+### Project Objective
+Answer some exploratoty analisys questions about a given dataset. 
+
+### Loading and preprocessing the data
+Downloading raw data from given url:
+```{r, echo = TRUE}
+setwd("C:/Users/pc/Documents/R/Rep_research/work")
+unzip("repdata-data-activity.zip")
+data <- read.csv("activity.csv")
+#temp <- tempfile()
+#download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",temp)
+#data <- read.csv(unz(temp, "activity.csv"))
+#unlink(temp)
+```
+
+### What is mean total number of steps taken per day?
+Calculate the total number of steps taken per day
+```{r, echo = TRUE}
+library(data.table)
+data_sum <- setDT(data)[, sum(steps, na.rm = TRUE), by=date]
+data_sum
+```
+Histogram of the total number of steps taken each day
+```{r, echo = TRUE}
+par(mar = rep(2, 4))
+hist(data_sum$V1)
+```
+Calculate and report the mean and median of the total number of steps taken per day
+```{r, echo = TRUE}
+data_mean <- setDT(data)[, mean(steps, na.rm = TRUE), by=date]
+data_mean
+```
+
+###What is the average daily activity pattern?
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r, echo = TRUE}
+data_avg <- setDT(data)[, mean(steps, na.rm = TRUE), by=interval]
+data_avg
+plot(data_avg$interval,data_avg$V1,type="l")
+```
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+Intervals between id810 and 920 have higher averages (more than 100 steps), top value is locaed in interval 835 (206 steps avg)
+
+###Imputing missing values
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r, echo = TRUE}
+sum(is.na(data$steps))
+```
+Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+```{r, echo = TRUE}
+data2 <- data
+data2$steps[which(is.na(data2$steps))] <- mean(data2$steps, na.rm = TRUE)
+```
+Replace na´s for column mean
+
+Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```{r, echo = TRUE}
+data_sum_nona <- setDT(data2)[, sum(steps, na.rm = TRUE), by=date]
+par(mar = rep(2, 4))
+hist(data_sum_nona$V1)
+data_mean_nona <- setDT(data2)[, mean(steps, na.rm = TRUE), by=date]
+data_mean_nona
+```
+Replacement of na´s has produced important impacts on data:
+- Total amount of steps per day has changed. Number of days with less than 10.000 steps have grown by 120% about.
+- However, mean of steps per day has not changed at all. Total mean of steps keeps in 37,4 despite data2 has no na´s  
+
+###Are there differences in activity patterns between weekdays and weekends?
+
+Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r, echo = TRUE}
+data2$days <- as.factor(weekdays(as.Date(data2$date)))
+levels(data2$days)
+levels(data2$days) <- c("Weekend", "Weekday", "Weekday", "Weekday", "Weekday", "Weekend", "Weekday")
+levels(data2$days)
+```
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+```{r, echo = TRUE}
+data3 <- merge(data2, data_avg, by = "interval", all.x = TRUE)
+weekends <- subset(data3, days == "Weekend")
+weekdays <- subset(data3, days == "Weekday")
+par(mfrow=c(2,1))
+plot(weekends$interval,weekends$V1,type="l")
+plot(weekdays$interval,weekdays$V1,type="l")
+```
+
